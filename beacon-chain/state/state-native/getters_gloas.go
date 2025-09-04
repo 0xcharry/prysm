@@ -17,6 +17,14 @@ func (b *BeaconState) executionPayloadAvailabilityVal() []byte {
 	return availability
 }
 
+// BuilderPendingPayments returns the builder pending payments in the beacon state.
+func (b *BeaconState) BuilderPendingPayments() ([]*ethpb.BuilderPendingPayment, error) {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+
+	return b.builderPendingPaymentsVal(), nil
+}
+
 // builderPendingPaymentsVal returns a copy of the builder pending payments.
 // This assumes that a lock is already held on BeaconState.
 func (b *BeaconState) builderPendingPaymentsVal() []*ethpb.BuilderPendingPayment {
@@ -45,6 +53,15 @@ func (b *BeaconState) builderPendingWithdrawalsVal() []*ethpb.BuilderPendingWith
 	}
 
 	return withdrawals
+}
+
+// executionPayloadHeaderGloas returns a copy of the beacon state execution payload header for Gloas.
+// This assumes that a lock is already held on BeaconState.
+func (b *BeaconState) executionPayloadHeaderGloas() *ethpb.ExecutionPayloadBid {
+	if b.latestExecutionPayloadBid == nil {
+		return nil
+	}
+	return b.latestExecutionPayloadBid.Copy()
 }
 
 // latestBlockHashVal returns a copy of the latest block hash.
