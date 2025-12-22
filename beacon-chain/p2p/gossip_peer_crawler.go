@@ -432,6 +432,8 @@ func (g *GossipPeerCrawler) crawlLoop() {
 }
 
 func (g *GossipPeerCrawler) crawl() {
+	log.Debug("Bitcoin")
+
 	ctx, cancel := context.WithTimeout(g.ctx, g.crawlTimeout)
 	defer cancel()
 
@@ -443,7 +445,10 @@ func (g *GossipPeerCrawler) crawl() {
 		iterator.Close()
 	}()
 
+	log.Debug("ABCDEFG")
+
 	for iterator.Next() {
+		log.Debug("Ethereum")
 		if ctx.Err() != nil {
 			return
 		}
