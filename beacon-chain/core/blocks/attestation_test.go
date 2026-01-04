@@ -1,6 +1,7 @@
 package blocks_test
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -312,6 +313,75 @@ func TestVerifyAttestationNoVerifySignature_Electra(t *testing.T) {
 		err = blocks.VerifyAttestationNoVerifySignature(context.TODO(), beaconState, att)
 		assert.ErrorContains(t, "no attesting indices found for committee index 0", err)
 	})
+}
+
+func TestVerifyAttestationNoVerifySignature_GloasCommitteeIndexLimit(t *testing.T) {
+	cfg := params.BeaconConfig()
+	stateSlot := cfg.MinAttestationInclusionDelay + 1
+
+	blockRoots := make([][]byte, cfg.SlotsPerHistoricalRoot)
+	for i := range blockRoots {
+		blockRoots[i] = make([]byte, fieldparams.RootLength)
+	}
+	stateRoots := make([][]byte, cfg.SlotsPerHistoricalRoot)
+	for i := range stateRoots {
+		stateRoots[i] = make([]byte, fieldparams.RootLength)
+	}
+	randaoMixes := make([][]byte, cfg.EpochsPerHistoricalVector)
+	for i := range randaoMixes {
+		randaoMixes[i] = make([]byte, fieldparams.RootLength)
+	}
+
+	checkpointRoot := bytes.Repeat([]byte{0xAA}, fieldparams.RootLength)
+	justified := &ethpb.Checkpoint{Epoch: 0, Root: checkpointRoot}
+
+	gloasStateProto := &ethpb.BeaconStateGloas{
+		Slot:                         stateSlot,
+		GenesisValidatorsRoot:        bytes.Repeat([]byte{0x11}, fieldparams.RootLength),
+		BlockRoots:                   blockRoots,
+		StateRoots:                   stateRoots,
+		RandaoMixes:                  randaoMixes,
+		ExecutionPayloadAvailability: make([]byte, cfg.SlotsPerHistoricalRoot/8),
+		CurrentJustifiedCheckpoint:   justified,
+		PreviousJustifiedCheckpoint:  justified,
+		Validators: []*ethpb.Validator{
+			{
+				EffectiveBalance:      cfg.MinActivationBalance,
+				WithdrawalCredentials: append([]byte{cfg.ETH1AddressWithdrawalPrefixByte}, bytes.Repeat([]byte{0x01}, 31)...),
+			},
+		},
+		Balances:               []uint64{cfg.MinActivationBalance},
+		BuilderPendingPayments: make([]*ethpb.BuilderPendingPayment, cfg.SlotsPerEpoch*2),
+		Fork: &ethpb.Fork{
+			CurrentVersion:  bytes.Repeat([]byte{0x01}, 4),
+			PreviousVersion: bytes.Repeat([]byte{0x01}, 4),
+			Epoch:           0,
+		},
+	}
+
+	beaconState, err := state_native.InitializeFromProtoGloas(gloasStateProto)
+	require.NoError(t, err)
+
+	committeeBits := bitfield.NewBitvector64()
+	committeeBits.SetBitAt(0, true)
+	aggBits := bitfield.NewBitlist(1)
+	aggBits.SetBitAt(0, true)
+
+	att := &ethpb.AttestationElectra{
+		Data: &ethpb.AttestationData{
+			Slot:            0,
+			CommitteeIndex:  2, // invalid for Gloas (must be <2)
+			BeaconBlockRoot: blockRoots[0],
+			Source:          justified,
+			Target:          justified,
+		},
+		AggregationBits: aggBits,
+		CommitteeBits:   committeeBits,
+		Signature:       bytes.Repeat([]byte{0x00}, fieldparams.BLSSignatureLength),
+	}
+
+	err = blocks.VerifyAttestationNoVerifySignature(context.TODO(), beaconState, att)
+	assert.ErrorContains(t, "incorrect committee index 2", err)
 }
 
 func TestConvertToIndexed_OK(t *testing.T) {
