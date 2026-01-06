@@ -83,6 +83,7 @@ var mainnetBeaconConfig = &BeaconChainConfig{
 	HysteresisQuotient:             4,
 	HysteresisDownwardMultiplier:   1,
 	HysteresisUpwardMultiplier:     5,
+	BuilderIndexFlag:               1099511627776,
 
 	// Gwei value constants.
 	MinDepositAmount:          1 * 1e9,
@@ -94,6 +95,7 @@ var mainnetBeaconConfig = &BeaconChainConfig{
 	BLSWithdrawalPrefixByte:         byte(0),
 	ETH1AddressWithdrawalPrefixByte: byte(1),
 	CompoundingWithdrawalPrefixByte: byte(2),
+	BuilderWithdrawalPrefixByte:     byte(3),
 	ZeroHash:                        [32]byte{},
 
 	// Time parameter constants.
@@ -167,6 +169,7 @@ var mainnetBeaconConfig = &BeaconChainConfig{
 	MaxWithdrawalsPerPayload:         16,
 	MaxBlsToExecutionChanges:         16,
 	MaxValidatorsPerWithdrawalsSweep: 16384,
+	MaxBuildersPerWithdrawalsSweep:   16384,
 
 	// BLS domain values.
 	DomainBeaconProposer:              bytesutil.Uint32ToBytes4(0x00000000),
